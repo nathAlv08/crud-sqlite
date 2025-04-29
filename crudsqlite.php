@@ -22,56 +22,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     }
 }
-?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen List Tugas</title>
-</head>
-<body>
-    <h1>Manajemen List Tugas</h1>
 
-    <h2>Tambah Tugas</h2>
-    <form method="POST" action="?method=tambah">
-        <input type="text" name="tugas" placeholder="Masukkan tugas" required>
-        <input type="number" name="waktu" placeholder="Waktu yang diperlukan (menit)" required>
-        <button type="submit">Tambah</button>
-    </form>
-    
-
-    <h2>Daftar Tugas</h2>
-    <ol>
-        <?php foreach ($tugas as $t): ?>
-            <li>
-                <?= htmlspecialchars($t['deskripsi']) ?> - <?= htmlspecialchars($t['waktu']) ?> menit
-                <a href="?method=edit&id=<?= $t['id'] ?>">[Edit]</a>
-                <form method="POST" style="display:inline-block" action="?method=hapus" onsubmit="return confirm('Hapus tugas ini?');">
-                    <input type="hidden" name="id" value="<?= $t['id'] ?>" />
-                    <button type="submit">[Hapus]</button>
-                </form>
-            </li>
-        <?php endforeach; ?>
-    </ol>
-
-
-    <?php if (isset($tugas) && isset($tugas['id'])): ?>
-        <hr>
-        <h2>Edit Tugas</h2>
-        <form method="POST" action="?method=update">
-            <input type="hidden" name="id" value="<?= $tugas['id'] ?>" />
-            <input type="text" name="tugas" value="<?= htmlspecialchars($tugas['deskripsi']) ?>" required>
-            <input type="number" name="waktu" value="<?= htmlspecialchars($tugas['waktu']) ?>" required>
-            <button type="submit">Simpan Perubahan</button>
-            <a href="<?= $_SERVER['SCRIPT_NAME'] ?>">[Batal]</a>
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $method = $_GET['method'] ?? null;
+    $lihat = $_GET['lihat'] ?? null;
+  
+    if ($lihat) {
+      // Menampilkan detail tugas berdasarkan ID
+      $sql = 'SELECT * FROM tugas WHERE id = :id';
+      $stmt = $conn->prepare($sql);
+      $stmt->bindParam(':id', $lihat, PDO::PARAM_INT);
+      $stmt->execute();
+      $tugasDetail = $stmt->fetch(PDO::FETCH_ASSOC);
+  
+      // Jika tugas ditemukan, tampilkan detail
+      if ($tugasDetail) {
+        echo renderDetailTugas($tugasDetail);
+      } else {
+        echo "<p>Tugas tidak ditemukan.</p>";
+      }
+    } elseif ($method === 'edit' && isset($_GET['id'])) {
+      // Menampilkan form edit tugas
+      $sql = 'SELECT * FROM tugas WHERE id = :id';
+      $stmt = $conn->prepare($sql);
+      $stmt->bindParam(':id', $_GET['id'], PDO::PARAM_INT);
+      $stmt->execute();
+      $tugas = $stmt->fetch(PDO::FETCH_ASSOC);
+      echo renderFormEdit($tugas);
+    } else {
+      // Menampilkan daftar tugas
+      $sql = 'SELECT * FROM tugas';
+      $stmt = $conn->query($sql);
+      $tugas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+      echo renderListingTugas($tugas);
+    }
+  }
+  
+  function renderListingTugas($daftarTugas) {
+    $list = "<ol>";
+    foreach ($daftarTugas as $t) {
+      $list .= <<<HTML
+      <li>
+        {$t['deskripsi']} ({$t['waktu']} menit)
+        <a href="?lihat={$t['id']}">[Lihat Detail]</a> 
+        <a href="?method=edit&id={$t['id']}">[Edit]</a>
+        <form style="display:inline-block" method="post" action="?method=hapus">
+          <input type="hidden" name="id" value="{$t['id']}" />
+          <button type="submit">🗑️</button>
         </form>
-    <?php endif; ?>
+      </li>
+      HTML;
+    }
+    $list .= "</ol>";
+  
+    return <<<HTML
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8">
+      <title>Manajemen List Tugas</title>
+    </head>
+    <body>
+      <h1>Manajemen List Tugas</h1>
+      <form method="post" action="?method=tambah">
+        <input name="tugas" type="text" placeholder="Masukkan tugas" required />
+        <input name="waktu" type="text" placeholder="Waktu yang diperlukan" required />
+        <button type="submit">Tambah</button>
+      </form>
+      <h2>Daftar Tugas</h2>
+      {$list}
+    </body>
+    </html>
+  HTML;
+  }
+  
+  function renderFormEdit($tugas) {
+    return <<<HTML
+    <h1>Edit Tugas</h1>
+    <form method="post" action="?method=update">
+      <input type="hidden" name="id" value="{$tugas['id']}" />
+      <input name="tugas" type="text" value="{$tugas['deskripsi']}" required />
+      <input name="waktu" type="text" value="{$tugas['waktu']}" required />
+      <button type="submit">Simpan Perubahan</button>
+    </form>
+    <a href="{$_SERVER['SCRIPT_NAME']}">Kembali ke Daftar Tugas</a>
+  HTML;
+  }
+  
+  function renderDetailTugas($tugas) {
+    return <<<HTML
+    <h1>Detail Tugas</h1>
+    <p><strong>Tugas:</strong> {$tugas['deskripsi']}</p>
+    <p><strong>Waktu yang diperlukan:</strong> {$tugas['waktu']} menit</p>
+    <a href="{$_SERVER['SCRIPT_NAME']}">Kembali ke Daftar Tugas</a>
+  HTML;
+  }
+?>
 
-    <?php if (isset($selectedTugas)): ?>
-        <h2>Detail Tugas</h2>
-        <p><strong>Tugas:</strong> <?= htmlspecialchars($selectedTugas['deskripsi']) ?></p>
-        <p><strong>Waktu yang diperlukan:</strong> <?= htmlspecialchars($selectedTugas['waktu']) ?> menit</p>
-    <?php endif; ?>
-</body>
-</html>
