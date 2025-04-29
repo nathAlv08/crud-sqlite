@@ -18,7 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bindParam(':waktu', $_POST['waktu'], PDO::PARAM_INT);
         $stmt->execute();
         header('Location: ' . $_SERVER['SCRIPT_NAME']);
+        exit;
         break;
+    case 'hapus':
+        $sql = 'DELETE FROM tugas WHERE id = :id';
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(':id', $_POST['id'], PDO::PARAM_INT);
+        $stmt->execute();
+        header('Location: ' . $_SERVER['SCRIPT_NAME']);
+        exit;
+        break;
+    
 
     }
 }
