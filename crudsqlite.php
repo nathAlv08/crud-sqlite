@@ -28,6 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . $_SERVER['SCRIPT_NAME']);
         exit;
         break;
+    case 'hapus_semua':
+        $conn->exec('DELETE FROM tugas');
+        header('Location: ' . $_SERVER['SCRIPT_NAME']);
+        exit;
+        break;
     case 'update':
         $sql = 'UPDATE tugas SET deskripsi = :deskripsi, waktu = :waktu WHERE id = :id';
         $stmt = $conn->prepare($sql);
@@ -78,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
   
   function renderListingTugas($daftarTugas) {
     $list = "<ol>";
+  
     foreach ($daftarTugas as $t) {
       $list .= <<<HTML
       <li>
@@ -92,7 +98,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
       HTML;
     }
     $list .= "</ol>";
-  
+    $list .= <<<HTML
+        <form method="post" action="?method=hapus_semua" onsubmit="return confirm('Yakin ingin menghapus semua tugas?');">
+        <button type="submit" style="color:red;">🗑️ Hapus Semua</button>
+        </form>
+HTML;
     return <<<HTML
     <!DOCTYPE html>
     <html lang="id">
@@ -109,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
       </form>
       <h2>Daftar Tugas</h2>
       {$list}
+    
     </body>
     </html>
   HTML;
